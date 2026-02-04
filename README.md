@@ -1,42 +1,18 @@
-# sv
+# CRUD Admin Portal
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Simple SvelteKit admin portal with MongoDB + Mongoose CRUD and TailwindCSS.
 
-## Creating a project
+## Setup
 
-If you're seeing this, you've probably already done this step. Congrats!
+1. Create a .env file in the project root.
+2. Add your MongoDB connection string:
 
-```sh
-# create a new project
-npx sv create my-app
-```
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/crud
 
-To recreate this project with the same configuration:
+## Install
 
-```sh
-# recreate this project
-npx sv create --template minimal --no-types --add tailwindcss="plugins:typography,forms" --install npm crud-nosql
-```
+npm install
 
-## Developing
+## Run
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
