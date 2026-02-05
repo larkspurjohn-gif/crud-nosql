@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
 
 	let users = [];
@@ -29,7 +29,16 @@
 						{
 							label: 'Age',
 							data,
-							backgroundColor: 'rgba(15, 23, 42, 0.6)'
+							backgroundColor: [
+								'rgb(255, 99, 132)',
+								'rgb(54, 162, 235)',
+								'rgb(255, 205, 86)',
+								'rgb(75, 192, 192)',
+								'rgb(153, 102, 255)',
+								'rgb(255, 159, 64)',
+								'rgb(201, 203, 207)',
+								'rgb(99, 255, 132)'
+							],
 						}
 					]
 				},
@@ -37,8 +46,14 @@
 					responsive: true,
 					maintainAspectRatio: false,
 					plugins: {
-						legend: { display: false }
-					}
+            legend: {
+              position: 'top',
+            },
+            title: {
+              display: true,
+              text: 'Users Ages'
+            }
+          }
 				}
 			});
 			return;
@@ -116,19 +131,18 @@
 		}
 	};
 
-	onMount(() => {
-		loadUsers();
-		return () => {
-			chart?.destroy();
-			chart = null;
-		};
+	onMount(loadUsers);
+
+	onDestroy(() => {
+		chart?.destroy();
+		chart = null;
 	});
 </script>
 
 <div class="min-h-screen bg-slate-50 text-slate-900">
 	<div class="mx-auto max-w-3xl px-4 py-10">
 		<h1 class="text-2xl font-semibold">Admin Portal</h1>
-		<p class="mt-1 text-sm text-slate-600">Simple CRUD for users.</p>
+		<p class="mt-1 text-sm text-slate-600">CRUD for Users</p>
 
 		<div class="mt-6 rounded-lg border bg-white p-4">
 			<h2 class="text-sm font-medium text-slate-700">{editingId ? 'Edit user' : 'Add user'}</h2>
