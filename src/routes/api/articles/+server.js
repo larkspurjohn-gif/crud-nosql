@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '$lib/server/db';
-import User from '$lib/server/models/User';
+import User from '$lib/server/models/Article';
 
 export async function GET() {
 	await connectToDatabase();
@@ -10,7 +10,7 @@ export async function GET() {
 
 export async function POST({ request }) {
 	await connectToDatabase();
-	const { firstName, lastName, age } = await request.json();
-	const user = await User.create({ firstName, lastName, age });
+	const { articleName, articleCategory, articleDate } = await request.json();
+	const user = await User.create({ articleName, articleCategory, articleDate });
 	return json(user, { status: 201 });
 }

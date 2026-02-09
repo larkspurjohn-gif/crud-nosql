@@ -1,24 +1,23 @@
 <script>
 	import { onDestroy, onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
-
-	let users = [];
+	let articles = [];
 	let loading = false;
 	let error = '';
 
-	let firstName = '';
-	let lastName = '';
-	let age = '';
+	let articleName = '';
+	let articleCategory = '';
+	let articleDate = '';
 	let editingId = null;
 	let chartCanvas;
 	let chart;
 
-	const USERS_ENDPOINT = '/api/users';
+	const ARTICLES_ENDPOINT = '/api/articles';
 
 	const renderChart = () => {
 		if (!chartCanvas) return;
-		const labels = users.map((user) => `${user.firstName} ${user.lastName}`.trim());
-		const data = users.map((user) => Number(user.age) || 0);
+		const labels = articles.map((article) => `${articles.articleName} ${articles.articleCategory}`.trim());
+		const data = articles.map((article) => Number(article.articleDate) || 0);
 
 		if (!chart) {
 			chart = new Chart(chartCanvas, {
@@ -27,7 +26,7 @@
 					labels,
 					datasets: [
 						{
-							label: 'Age',
+							label: 'Date',
 							data,
 							backgroundColor: [
 								'rgb(255, 99, 132)',
@@ -51,7 +50,7 @@
             },
             title: {
               display: true,
-              text: 'Users Ages'
+              text: 'Article Dates'
             }
           }
 				}
@@ -64,13 +63,13 @@
 		chart.update();
 	};
 
-	const loadUsers = async () => {
+	const loadArticles = async () => {
 		loading = true;
 		error = '';
 		try {
-			const res = await fetch(USERS_ENDPOINT);
-			if (!res.ok) throw new Error('Failed to load users');
-			users = await res.json();
+			const res = await fetch(ARTICLES_ENDPOINT);
+			if (!res.ok) throw new Error('Failed to load articles');
+			articles = await res.json();
 			renderChart();
 		} catch (err) {
 			error = err?.message ?? 'Something went wrong';
@@ -80,58 +79,58 @@
 	};
 
 	const resetForm = () => {
-		firstName = '';
-		lastName = '';
-		age = '';
+		articleName = '';
+		articleCategory = '';
+		articleDate = '';
 		editingId = null;
 	};
 
 	const submitForm = async () => {
 		error = '';
 		const payload = {
-			firstName: firstName.trim(),
-			lastName: lastName.trim(),
-			age: Number(age)
+			articleName: articleName.trim(),
+			articleCategory: articleCategory.trim(),
+			articleDate: Date(articleDate)
 		};
 
-		if (!payload.firstName || !payload.lastName || Number.isNaN(payload.age)) {
-			error = 'Please enter first name, last name, and age.';
+		if (!payload.articleName || !payload.articleCategory || !payload.articleDate) {
+			error = 'Please enter article name, article Category , and article Date.';
 			return;
 		}
 
 		try {
-			const res = await fetch(editingId ? `${USERS_ENDPOINT}/${editingId}` : USERS_ENDPOINT, {
+			const res = await fetch(editingId ? `${ARTICLES_ENDPOINT}/${editingId}` : ARTICLES_ENDPOINT, {
 				method: editingId ? 'PUT' : 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)
 			});
 			if (!res.ok) throw new Error('Save failed');
-			await loadUsers();
+			await loadArticles();
 			resetForm();
 		} catch (err) {
 			error = err?.message ?? 'Something went wrong';
 		}
 	};
 
-	const editUser = (user) => {
-		firstName = user.firstName;
-		lastName = user.lastName;
-		age = String(user.age ?? '');
-		editingId = user._id;
+	const editArticle = (article) => {
+		articleName = article.articleName;
+		articleCategory = article.articleCategory;
+		articleDate = String(article.articleDate ?? '');
+		editingId = article._id;
 	};
 
-	const deleteUser = async (id) => {
+	const deleteArticle = async (id) => {
 		error = '';
 		try {
-			const res = await fetch(`${USERS_ENDPOINT}/${id}`, { method: 'DELETE' });
+			const res = await fetch(`${ARTICLES_ENDPOINT}/${id}`, { method: 'DELETE' });
 			if (!res.ok) throw new Error('Delete failed');
-			await loadUsers();
+			await loadArticles();
 		} catch (err) {
 			error = err?.message ?? 'Something went wrong';
 		}
 	};
 
-	onMount(loadUsers);
+	onMount(loadArticles);
 
 	onDestroy(() => {
 		chart?.destroy();
@@ -142,31 +141,31 @@
 <div class="min-h-screen bg-slate-50 text-slate-900">
 	<div class="mx-auto max-w-3xl px-4 py-10">
 		<h1 class="text-2xl font-semibold">Admin Portal</h1>
-		<p class="mt-1 text-sm text-slate-600">CRUD for Users</p>
+		<p class="mt-1 text-sm text-slate-600">CRUD for Articles</p>
 
 		<div class="mt-6 rounded-lg border bg-white p-4">
-			<h2 class="text-sm font-medium text-slate-700">{editingId ? 'Edit user' : 'Add user'}</h2>
+			<h2 class="text-sm font-medium text-slate-700">{editingId ? 'Edit article' : 'Add article'}</h2>
 			<form class="mt-3" on:submit|preventDefault={submitForm}>
 				<div class="grid gap-3 sm:grid-cols-3">
 					<input
 						class="w-full rounded border px-3 py-2 text-sm"
-						placeholder="First name"
+						placeholder="Article name"
 						required
-						bind:value={firstName}
+						bind:value={articleName}
 					/>
 					<input
 						class="w-full rounded border px-3 py-2 text-sm"
-						placeholder="Last name"
+						placeholder="Article Category"
 						required
-						bind:value={lastName}
+						bind:value={articleCategory}
 					/>
 					<input
 						class="w-full rounded border px-3 py-2 text-sm"
-						placeholder="Age"
-						type="number"
-						min="0"
+						placeholder="Date"
+						type="date"
+						max="2026-02-04"
 						required
-						bind:value={age}
+						bind:value={articleDate}
 					/>
 				</div>
 				<div class="mt-3 flex gap-2">
@@ -194,31 +193,31 @@
 
 		<div class="mt-6 rounded-lg border bg-white">
 			<div class="flex items-center justify-between border-b px-4 py-3">
-				<h2 class="text-sm font-medium text-slate-700">Users</h2>
-				<button class="cursor-pointer text-sm text-slate-600" on:click={loadUsers}>Refresh</button>
+				<h2 class="text-sm font-medium text-slate-700">Articles</h2>
+				<button class="cursor-pointer text-sm text-slate-600" on:click={loadArticles}>Refresh</button>
 			</div>
 			{#if loading}
 				<p class="px-4 py-6 text-sm text-slate-500">Loading...</p>
-			{:else if users.length === 0}
-				<p class="px-4 py-6 text-sm text-slate-500">No users yet.</p>
+			{:else if articles.length === 0}
+				<p class="px-4 py-6 text-sm text-slate-500">No articles yet.</p>
 			{:else}
 				<ul class="divide-y">
-					{#each users as user}
+					{#each articles as article}
 						<li class="flex items-center justify-between px-4 py-3">
 							<div>
-								<p class="text-sm font-medium">{user.firstName} {user.lastName}</p>
-								<p class="text-xs text-slate-500">Age: {user.age}</p>
+								<p class="text-sm font-medium">{article.articleName} {article.articleCategory}</p>
+								<p class="text-xs text-slate-500">Dates: {article.articleDate}</p>
 							</div>
 							<div class="flex gap-2">
 								<button
 									class="rounded cursor-pointer border px-3 py-1 text-xs"
-									on:click={() => editUser(user)}
+									on:click={() => editArticle(article)}
 								>
 									Edit
 								</button>
 								<button
 									class="rounded cursor-pointer border px-3 py-1 text-xs text-red-600"
-									on:click={() => deleteUser(user._id)}
+									on:click={() => deleteArticle(article._id)}
 								>
 									Delete
 								</button>
@@ -231,7 +230,7 @@
 
     <h1 class="text-2xl font-semibold pt-6">Data Visualization</h1>
 		<div class="mt-6 rounded-lg border bg-white p-4">
-			<h2 class="text-sm font-medium text-slate-700">Ages chart</h2>
+			<h2 class="text-sm font-medium text-slate-700">Dates chart</h2>
 			<div class="mt-3 h-64">
 				<canvas bind:this={chartCanvas}></canvas>
 			</div>

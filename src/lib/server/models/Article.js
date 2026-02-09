@@ -1,24 +1,24 @@
 import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema(
+const articleSchema = new mongoose.Schema(
 	{
-		firstName: {
+		articleName: {
       type: String,
       required: true,
       trim: true
     },
-		lastName: {
+		articleCategory: {
       type: String,
       required: true,
       trim: true
     },
-		age: {
-      type: Number,
+		articleDate: {
+      type: Date,
       required: true,
-      min: 0
+      min:'2026-02-04'
     }
 	},
 	{ timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model('User', userSchema);
+export default mongoose.models.Article || mongoose.model('Article', articleSchema);
