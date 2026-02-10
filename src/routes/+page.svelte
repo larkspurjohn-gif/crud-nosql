@@ -33,12 +33,14 @@
 
 	// 1. Sort by date
 	const sorted = [...chartData].sort(
-		(a, b) => new Date(a.date) - new Date(b.date)
+		(a, b) =>
+			new Date(`${a.date}T12:00:00`) -
+			new Date(`${b.date}T12:00:00`)
 	);
 
 	// 2. X-axis labels
 	const labels = sorted.map(d =>
-		new Date(d.date).toLocaleDateString()
+		new Date(`${d.date}T12:00:00`).toLocaleDateString()
 	);
 
 	// 3. Canonical category list (MATCH THIS EVERYWHERE)
@@ -157,7 +159,7 @@
 		const payload = {
 			articleName: articleName.trim(),
 			articleCategory: articleCategory.trim(),
-			articleDate: new Date(articleDate)
+			articleDate
 		};
 
 		if (!payload.articleName || !payload.articleCategory || !payload.articleDate) {
@@ -173,6 +175,7 @@
 			});
 			if (!res.ok) throw new Error('Save failed');
 			await loadArticles();
+			await loadChartData();
 			resetForm();
 		} catch (err) {
 			error = err?.message ?? 'Something went wrong';
