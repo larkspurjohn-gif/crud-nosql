@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
 	let articles = [];
+	let analytics = [];
 	let loading = false;
 	let error = '';
 
@@ -9,59 +10,126 @@
 	let articleCategory = '';
 	let articleDate = '';
 	let editingId = null;
+	let chartData = [];
 	let chartCanvas;
 	let chart;
 
 	const ARTICLES_ENDPOINT = '/api/articles';
 
-	const renderChart = () => {
-		if (!chartCanvas) return;
-		const labels = articles.map((article) => `${articles.articleName} ${articles.articleCategory}`.trim());
-		const data = articles.map((article) => Number(article.articleDate) || 0);
-
-		if (!chart) {
-			chart = new Chart(chartCanvas, {
-				type: 'bar',
-				data: {
-					labels,
-					datasets: [
-						{
-							label: 'Date',
-							data,
-							backgroundColor: [
-								'rgb(255, 99, 132)',
-								'rgb(54, 162, 235)',
-								'rgb(255, 205, 86)',
-								'rgb(75, 192, 192)',
-								'rgb(153, 102, 255)',
-								'rgb(255, 159, 64)',
-								'rgb(201, 203, 207)',
-								'rgb(99, 255, 132)'
-							],
-						}
-					]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-            legend: {
-              position: 'top',
-            },
-            title: {
-              display: true,
-              text: 'Article Dates'
-            }
-          }
-				}
-			});
-			return;
-		}
-
-		chart.data.labels = labels;
-		chart.data.datasets[0].data = data;
-		chart.update();
+	const loadChartData = async () => {
+		error = '';
+ 		 try {
+    		const res = await fetch('/api/articles/analytics');
+    		if (!res.ok) throw new Error('Failed to load chart data');
+    		chartData = await res.json();
+    		renderChart();
+  		} catch (err) {
+    		error = err?.message ?? 'Chart load failed';
+  		}
 	};
+
+	const renderChart = () => {
+	if (!chartCanvas || chartData.length === 0) return;
+
+	// 1. Sort by date
+	const sorted = [...chartData].sort(
+		(a, b) => new Date(a.date) - new Date(b.date)
+	);
+
+	// 2. X-axis labels
+	const labels = sorted.map(d =>
+		new Date(d.date).toLocaleDateString()
+	);
+
+	// 3. Canonical category list (MATCH THIS EVERYWHERE)
+	const categories = [
+		'Durham',
+		'Sports',
+		'Faculty',
+		'Student',
+		'Other School Info',
+		'Both School & Durham',
+		'Student Voices (Outside School)'
+	];
+
+	// 4. Colors per category
+	const colors = {
+		Durham: 'rgb(54, 162, 235)',
+		Sports: 'rgb(255, 99, 132)',
+		Faculty: 'rgb(75, 192, 192)',
+		Student: 'rgb(255, 205, 86)',
+		'Other School Info': 'rgb(255, 159, 64)',
+		'Both School & Durham': 'rgb(153, 102, 255)',
+		'Student Voices (Outside School)': 'rgb(201, 203, 207)'
+	};
+
+	// 5. Build datasets (ONE dataset per category)
+	const datasets = categories.map(category => ({
+		label: category,
+		backgroundColor: colors[category],
+		borderRadius: 4,
+		data: sorted.map(d => {
+			// normalize backend keys (student → Student)
+			const normalized = Object.fromEntries(
+				Object.entries(d.data || {}).map(([k, v]) => [
+					k.charAt(0).toUpperCase() + k.slice(1),
+					v
+				])
+			);
+
+			return normalized[category] ?? 0;
+		})
+	}));
+
+	// 6. Create or update chart
+	if (!chart) {
+		chart = new Chart(chartCanvas, {
+			type: 'bar',
+			data: {
+				labels,
+				datasets
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: { position: 'top' },
+					title: {
+						display: true,
+						text: 'Articles by Date and Category'
+					}
+				},
+				scales: {
+					x: {
+						stacked: false,
+						title: {
+							display: true,
+							text: 'Date'
+						}
+					},
+					y: {
+						beginAtZero: true,
+						ticks: {
+							stepSize: 1,
+							precision: 0
+						},
+						title: {
+							display: true,
+							text: 'Count'
+						}
+					}
+				}
+			}
+		});
+		return;
+	}
+
+	chart.data.labels = labels;
+	chart.data.datasets = datasets;
+	chart.update();
+};
+
+
 
 	const loadArticles = async () => {
 		loading = true;
@@ -70,7 +138,6 @@
 			const res = await fetch(ARTICLES_ENDPOINT);
 			if (!res.ok) throw new Error('Failed to load articles');
 			articles = await res.json();
-			renderChart();
 		} catch (err) {
 			error = err?.message ?? 'Something went wrong';
 		} finally {
@@ -90,7 +157,7 @@
 		const payload = {
 			articleName: articleName.trim(),
 			articleCategory: articleCategory.trim(),
-			articleDate: Date(articleDate)
+			articleDate: new Date(articleDate)
 		};
 
 		if (!payload.articleName || !payload.articleCategory || !payload.articleDate) {
@@ -113,14 +180,26 @@
 	};
 
 	const editArticle = (article) => {
+		if (!article._id) {
+			console.error('Invalid article passed to editArticle:', article);
+			error = 'Cannot edit: missing article ID';
+			return;
+  		}
 		articleName = article.articleName;
 		articleCategory = article.articleCategory;
-		articleDate = String(article.articleDate ?? '');
+		articleDate = article.articleDate
+			? new Date(article.articleDate).toISOString().slice(0, 10)
+			: '';
 		editingId = article._id;
 	};
 
 	const deleteArticle = async (id) => {
-		error = '';
+		if (!id) {
+			console.error('DELETE CALLED WITH INVALID ID:', id);
+			error = 'Invalid article ID';
+			return;
+		}
+
 		try {
 			const res = await fetch(`${ARTICLES_ENDPOINT}/${id}`, { method: 'DELETE' });
 			if (!res.ok) throw new Error('Delete failed');
@@ -130,7 +209,10 @@
 		}
 	};
 
-	onMount(loadArticles);
+	onMount(async() => {
+		await loadArticles();
+		await loadChartData();
+	});
 
 	onDestroy(() => {
 		chart?.destroy();
